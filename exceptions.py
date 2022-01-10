@@ -14,3 +14,9 @@ class NoCorrectRespond(Exception):
     """Ответ API не соответствует ожиданию."""
 
     pass
+
+
+class EndpointConnection(Exception):
+    """Ошибка во время подключение к эндпойнту."""
+
+    pass
