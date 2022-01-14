@@ -20,3 +20,9 @@ class EndpointConnection(Exception):
     """Ошибка во время подключение к эндпойнту."""
 
     pass
+
+
+class TokensAreNotCorrect(Exception):
+    """Отсутствие обязательных переменных окружения."""
+
+    pass

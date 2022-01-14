@@ -12,10 +12,12 @@ load_dotenv()
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-TELEGRAM_RETRY_TIME = 1200
+TELEGRAM_RETRY_TIME = 1500
 
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+
+timer_counter = 4
 
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -60,18 +62,15 @@ def get_api_answer(current_timestamp):
         )
         if homework_status.status_code != 200:
             error_message = 'Эндпоинт недоступен'
-            logging.error(error_message)
             raise exceptions.StatusCodeIsNotCorrect(error_message)
     except requests.exceptions.RequestException:
         error_message = 'Ошибка во время подключение к эндпойнту'
-        logging.exception(error_message)
         raise exceptions.EndpointConnection(error_message)
 
     try:
         result = homework_status.json()
     except ValueError:
         error_message = 'Ошибка во время парсинг json объекта '
-        logging.exception(error_message)
         raise ValueError(error_message)
 
     return result
@@ -87,7 +86,6 @@ def check_response(response):
 
     if 'homeworks' not in response:
         error_message = 'Отсутствие "homeworks" ключа в ответе API'
-        logging.error(error_message)
         raise KeyError(error_message)
 
     if type(response.get('homeworks')) is not list:
@@ -102,14 +100,12 @@ def parse_status(homework):
         homework_name = homework['homework_name']
     except KeyError:
         error_message = 'Ключ "homework_name" отсутствует в "homeworks"'
-        logging.error(error_message)
         raise KeyError(error_message)
 
     try:
         homework_status = homework['status']
     except KeyError:
         error_message = 'Ключ "status" отсутствует в "homeworks"'
-        logging.error(error_message)
         raise KeyError('Ключ "status" отсутствует в "homeworks"')
 
     if homework_status not in HOMEWORK_STATUSES:
@@ -117,7 +113,6 @@ def parse_status(homework):
             'Недокументированный статус домашней работы,'
             'обнаруженный в ответе API'
         )
-        logging.error(error_message)
         raise KeyError(error_message)
 
     verdict = HOMEWORK_STATUSES[homework_status]
@@ -137,10 +132,9 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    global NO_HOMEWORK_UPDATE_COUNTER
-
     if not check_tokens():
         logging.critical('Отсутствие обязательных переменных окружения')
+        raise exceptions.TokensAreNotCorrect()
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
